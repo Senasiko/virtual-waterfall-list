@@ -2,14 +2,19 @@
   "name": "virtual-waterfall-list",
   "version": "1.0.0",
   "description": "virtual waterfall list",
+  "keywords": ["virtual", "waterfall"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Senasiko/virtual-waterfall-list.git"
+  },
+  "author": "Senasiko",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "index.d.ts",
   "scripts": {
     "build": "rollup -c",
     "test": "karma start ./test/karma.config.js"
   },
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.6",
