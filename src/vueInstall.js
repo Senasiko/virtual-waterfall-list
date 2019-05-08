@@ -20,10 +20,8 @@ export default {
       },
       data() {
         return {
-          nowItems: [],
           cacheItems: [],
           width: 0,
-          height: 0,
           initialized: false,
         }
       },
@@ -40,8 +38,7 @@ export default {
           if (this.initialized) {
             this.waterfall.add(items);
             this.virtualList.items = this.waterfall.items;
-            this.nowItems = this.virtualList.viewItems;
-            this.height = this.waterfall.height;
+            this.update();
           } else {
             this.cacheItems = this.cacheItems.concat(items);
           }
@@ -49,6 +46,10 @@ export default {
         clear() {
           this.virtualList.clear();
           this.waterfall.clear();
+          this.update();
+        },
+        update() {
+          this.$forceUpdate();
         }
       },
       mounted() {
@@ -56,17 +57,14 @@ export default {
         this.waterfall = new this.$Waterfall(this.items, { width: this.width, maxHeight: this.maxHeight });
         this.virtualList = new VirtualList(this.$el, this.waterfall.items);
         this.initialized = true;
-        this.height = this.waterfall.height;
-        this.virtualList.on('change', () => {
-          this.nowItems = this.virtualList.viewItems;
-        });
+        this.virtualList.on('change', this.update.bind(this));
 
         this.reDraw = throttle(() => {
           this.width = this.$el.getBoundingClientRect().width;
           this.waterfall.width = this.width;
           this.waterfall.calculateAll();
           this.virtualList.items = this.waterfall.items;
-          this.height = this.waterfall.height;
+          this.update();
         }, 200);
 
         window.addEventListener('resize', this.reDraw);
@@ -86,9 +84,9 @@ export default {
           staticClass: 'virtual-list',
           style: {
             position: 'relative',
-            height: `${this.height}px`
+            height: `${this.waterfall && this.waterfall.height}px`
           }
-        }, this.width ? this.$scopedSlots.default({ nowItems: this.nowItems }) : []);
+        }, this.width ? this.$scopedSlots.default({ nowItems: this.virtualList ? this.virtualList.viewItems : [] }) : []);
       },
     });
   }

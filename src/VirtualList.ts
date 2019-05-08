@@ -39,7 +39,7 @@ export default class VirtualList {
   }
 
   getViewItemIndex(): [number, number] {
-    const { y } = this.dom.getBoundingClientRect() as DOMRect;
+    const { top: y } = this.dom.getBoundingClientRect() as DOMRect;
     let startY;
     if (y < 0) startY = -y;
     else if (y < window.innerHeight) startY = 0;
