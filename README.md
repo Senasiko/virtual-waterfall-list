@@ -1,6 +1,6 @@
 # virtual-waterfall-list
 virtual waterfall list
-<img src="https://Senasiko.github.io/images/virtual-waterfall.gif">
+<img src="https://www.senasiko.com/images/virtual-waterfall.gif">
 ## usage
 ```
 npm install virtual-waterfall-list
