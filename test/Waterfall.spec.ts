@@ -58,4 +58,10 @@ describe("Waterfall", () => {
     }]);
     expect(Math.floor(waterfall.items.slice(-1)[0].height)).to.equal(700);
   });
+  it('clear', () => {
+    waterfall.clear();
+    expect(waterfall.initItems.length).to.equal(0);
+    expect(waterfall.items.length).to.equal(0);
+    expect(waterfall.height).to.equal(0);
+  });
 });

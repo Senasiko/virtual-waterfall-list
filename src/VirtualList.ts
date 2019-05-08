@@ -86,6 +86,13 @@ export default class VirtualList {
     if (item.y > endY + 200) return 1;
     return 0;
   }
+
+  clear() {
+    this._items = [];
+    this.fromIndex = 0;
+    this.endIndex = 0;
+  }
+
   on(name: string, cb: Function) {
     if (this.cbs[name]) this.cbs[name].push(cb);
     else this.cbs[name] = [cb];

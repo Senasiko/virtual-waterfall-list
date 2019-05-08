@@ -46,6 +46,10 @@ export default {
             this.cacheItems = this.cacheItems.concat(items);
           }
         },
+        clear() {
+          this.virtualList.clear();
+          this.waterfall.clear();
+        }
       },
       mounted() {
         this.width = this.$el.getBoundingClientRect().width;

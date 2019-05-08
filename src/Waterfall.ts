@@ -114,12 +114,17 @@ export default class Waterfall {
     return item;
   }
 
-  calculateAll() {
+  clear() {
     this.isFirstLine = true;
     this.nowRow = [];
     this.items = [];
     this.height = 0;
-    this.calculateItemAndToItems(this.initItems);
+    this.initItems = [];
+  }
+  calculateAll() {
+    const initItems = this.initItems;
+    this.clear();
+    this.add(initItems);
   }
 }
 

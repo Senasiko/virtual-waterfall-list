@@ -44,5 +44,11 @@ describe("VirtualList", () => {
       top: 1500,
     });
   });
-
+  it('clear', () => {
+    virtualList.clear();
+    resultToDom();
+    expect(virtualList.fromIndex).to.equal(0);
+    expect(virtualList.endIndex).to.equal(0);
+    expect(dom.childElementCount).to.equal(0);
+  });
 });

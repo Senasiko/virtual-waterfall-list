@@ -40,6 +40,7 @@ export class Waterfall {
 	calculateItemAndToItems(items: WaterfallInitItem[]): WaterfallItem[];
 	calculateItem(initItem: WaterfallInitItem): WaterfallItem;
 	calculateAll(): void;
+	clear(): void;
 }
 
 export class VirtualList {
@@ -56,6 +57,7 @@ export class VirtualList {
 	listener(): void;
 	getViewItemIndex(): [number, number];
 	getItemDirection(item: VirtualListItem, startY: number, endY: number): 0 | 1 | -1;
+	clear(): void;
 	on(name: string, cb: Function): void;
 	emit(name: string, ...args: any[]): void;
 }
