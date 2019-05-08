@@ -77,7 +77,7 @@ export default {
         });
       },
       destroyed() {
-        this.observe.disconnent();
+        this.observe.disconnect();
       },
       render(h) {
         return h('div', {
