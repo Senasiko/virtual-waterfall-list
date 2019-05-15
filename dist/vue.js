@@ -1,1 +1,431 @@
-"use strict";var __assign=function(){return(__assign=Object.assign||function(t){for(var i,e=1,h=arguments.length;e<h;e++)for(var s in i=arguments[e])Object.prototype.hasOwnProperty.call(i,s)&&(t[s]=i[s]);return t}).apply(this,arguments)},Waterfall=function(){function t(t,i){this.height=0,this.items=[],this.initItems=[],this.nowRow=[],this.isFirstLine=!0,this.width=i.width,this.options=i,this.add(t)}return Object.defineProperty(t.prototype,"nowRowWidth",{get:function(){for(var t=0,i=0,e=this.nowRow;i<e.length;i++){t+=e[i].width}return t},enumerable:!0,configurable:!0}),Object.defineProperty(t.prototype,"nowRowMinBottomItem",{get:function(){if(this.isFirstLine){var t=this.nowRow.map(function(t){return t.width});return{x:t.length>0?t.reduce(function(t,i){return t+i}):0,y:0,width:0,height:0}}return this.nowRow.sort(function(t,i){return t.y+t.height-(i.y+i.height)||t.x-i.x})[0]},enumerable:!0,configurable:!0}),t.prototype.add=function(t){return this.initItems=this.initItems.concat(t),this.calculateItemAndToItems(t)},t.prototype.calculateItemAndToItems=function(t){for(var i=[],e=0,h=t;e<h.length;e++){for(var s=h[e],n=this.calculateItem(s),r=this.items.length-1;r>=0&&!(n.y+n.height>this.items[r].y+this.items[r].height);r--);this.items.splice(r+1,0,n),i.push(n)}return i},t.prototype.calculateItem=function(t){if(t.widthPercent){var i=t.padding||0;t._width=t._width||t.width,t._height=t._height||t.height,t.width=this.width*t.widthPercent,t.height=Math.min(t._height,(t.width-2*i)*(t._height/t._width),this.options.maxHeight||t._height)+2*i}Math.floor(t.width+this.nowRowWidth)>this.width&&(this.isFirstLine=!1);var e=__assign({},t,{x:this.nowRowMinBottomItem.x,y:this.nowRowMinBottomItem.y+this.nowRowMinBottomItem.height});this.height=Math.max(this.height,e.y+e.height);var h=0,s=this.nowRow.concat([e]).sort(function(t,i){return i.y+i.height-(t.y+t.height)||i.x-t.x});this.nowRow=[];for(var n=0,r=s;n<r.length;n++){var o=r[n];if(Math.floor(o.width+h)>this.width)break;h+=o.width,this.nowRow.push(o)}return e},t.prototype.clear=function(){this.isFirstLine=!0,this.nowRow=[],this.items=[],this.height=0,this.initItems=[]},t.prototype.calculateAll=function(){var t=this.initItems;this.clear(),this.add(t)},t}(),throttle=function(t,i){var e,h,s=[];return function(){for(var n=this,r=[],o=0;o<arguments.length;o++)r[o]=arguments[o];var a=(new Date).getTime();s=r;var l=function(){clearTimeout(e),e=0,t.apply(n,s),h=(new Date).getTime()};a-h>i?l():e||(e=window.setTimeout(l,i))}},VirtualList=function(){function t(t,i){this._items=[],this.fromIndex=0,this.endIndex=0,this.cbs={},this.dom=t,this.items=i;var e=throttle(this.listener,100);document.body.addEventListener("wheel",e.bind(this)),window.addEventListener("scroll",e.bind(this))}return Object.defineProperty(t.prototype,"viewItems",{get:function(){return this.items.slice(this.fromIndex,this.endIndex+1)},enumerable:!0,configurable:!0}),Object.defineProperty(t.prototype,"items",{get:function(){return this._items},set:function(t){this._items=t,this.listener()},enumerable:!0,configurable:!0}),t.prototype.listener=function(){var t;t=this.getViewItemIndex(),this.fromIndex=t[0],this.endIndex=t[1],this.emit("change")},t.prototype.getViewItemIndex=function(){var t,i=this.dom.getBoundingClientRect().top;t=i<0?-i:i<window.innerHeight?0:window.innerHeight-i;for(var e,h=window.innerHeight-i,s=0,n=this.items.length-1;;){if((e=Math.floor((s+n)/2))===s&&e!==n||e<0)return[-1,-1];var r=this.getItemDirection(this.items[e],t,h);if(-1===r)s=e;else{if(1!==r)break;n=e}}for(var o=h,a=t,l=e;l>=0&&0===this.getItemDirection(this.items[l],t,o);l--)s=l,o=Math.max(o,this.items[l].y+this.items[l].height),a=Math.min(a,this.items[l].y);for(l=e;l<this.items.length&&0===this.getItemDirection(this.items[l],a,h);l++)n=l,a=Math.min(a,this.items[l].y);return[s,n]},t.prototype.getItemDirection=function(t,i,e){return t.height+t.y<i-200?-1:t.y>e+200?1:0},t.prototype.clear=function(){this._items=[],this.fromIndex=0,this.endIndex=0},t.prototype.on=function(t,i){this.cbs[t]?this.cbs[t].push(i):this.cbs[t]=[i]},t.prototype.emit=function(t){for(var i=[],e=1;e<arguments.length;e++)i[e-1]=arguments[e];this.cbs[t]&&this.cbs[t].forEach(function(t){return t.apply(void 0,i)})},t}(),vueInstall={install:t=>{Object.defineProperty(t.prototype,"$Waterfall",{value:Waterfall}),t.component("virtualWaterfall",{props:{items:{type:Array,default:[]},maxHeight:{type:Number,default:null}},data:()=>({cacheItems:[],width:0,initialized:!1}),watch:{initialized(t){t&&this.cacheItems&&(this.add(this.cacheItems),this.cacheItems=[])}},methods:{add(t){this.initialized?(this.waterfall.add(t),this.virtualList.items=this.waterfall.items,this.update()):this.cacheItems=this.cacheItems.concat(t)},clear(){this.virtualList.clear(),this.waterfall.clear(),this.update()},update(){this.$forceUpdate()}},mounted(){this.width=this.$el.getBoundingClientRect().width,this.waterfall=new this.$Waterfall(this.items,{width:this.width,maxHeight:this.maxHeight}),this.virtualList=new VirtualList(this.$el,this.waterfall.items),this.initialized=!0,this.virtualList.on("change",this.update.bind(this)),this.reDraw=throttle(()=>{this.width=this.$el.getBoundingClientRect().width,this.waterfall.width=this.width,this.waterfall.calculateAll(),this.virtualList.items=this.waterfall.items,this.update()},200),window.addEventListener("resize",this.reDraw),this.observe=new MutationObserver(()=>{const{width:t}=this.$el.getBoundingClientRect();t!==this.width&&this.reDraw()}),this.observe.observe(this.$el,{attributes:!0})},destroyed(){this.observe.disconnent()},render(t){return t("div",{staticClass:"virtual-list",style:{position:"relative",height:`${this.waterfall&&this.waterfall.height}px`}},this.width?this.$scopedSlots.default({nowItems:this.virtualList?this.virtualList.viewItems:[]}):[])}})}};module.exports=vueInstall;
+'use strict';
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+MERCHANTABLITY OR NON-INFRINGEMENT.
+
+See the Apache Version 2.0 License for specific language governing permissions
+and limitations under the License.
+***************************************************************************** */
+
+var __assign = function() {
+    __assign = Object.assign || function __assign(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+
+function __values(o) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+    if (m) return m.call(o);
+    return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+}
+
+function __read(o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+}
+
+function __spread() {
+    for (var ar = [], i = 0; i < arguments.length; i++)
+        ar = ar.concat(__read(arguments[i]));
+    return ar;
+}
+
+var Waterfall = /** @class */ (function () {
+    function Waterfall(items, options) {
+        this.height = 0;
+        this.topItems = [];
+        this.bottomItems = [];
+        this.initItems = [];
+        this.nowRow = [];
+        this.isFirstLine = true;
+        this.width = options.width;
+        this.options = options;
+        this.add(items);
+    }
+    Object.defineProperty(Waterfall.prototype, "nowRowWidth", {
+        get: function () {
+            var e_1, _a;
+            var width = 0;
+            try {
+                for (var _b = __values(this.nowRow), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var item = _c.value;
+                    width += item.width;
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            return width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Waterfall.prototype, "nowRowMinBottomItem", {
+        get: function () {
+            if (this.isFirstLine) {
+                var widths = this.nowRow.map(function (item) { return item.width; });
+                return {
+                    x: widths.length > 0 ? widths.reduce(function (a, b) { return a + b; }) : 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                };
+            }
+            return this.nowRow.sort(function (a, b) { return (a.y + a.height) - (b.y + b.height) || (a.x - b.x); })[0];
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Waterfall.prototype.add = function (items) {
+        console.time('waterfall');
+        this.initItems = this.initItems.concat(items);
+        var rItems = this.calculateItemAndToItems(items);
+        console.timeEnd('waterfall');
+        return rItems;
+    };
+    Waterfall.prototype.calculateItemAndToItems = function (items) {
+        var e_2, _a;
+        var resultItems = [];
+        try {
+            for (var items_1 = __values(items), items_1_1 = items_1.next(); !items_1_1.done; items_1_1 = items_1.next()) {
+                var initItem = items_1_1.value;
+                var item = this.calculateItem(initItem);
+                var i = this.bottomItems.length - 1;
+                for (; i >= 0; i--) {
+                    if (item.y + item.height >= this.bottomItems[i].y + this.bottomItems[i].height)
+                        break;
+                }
+                this.bottomItems.splice(i + 1, 0, item);
+                i = this.topItems.length - 1;
+                for (; i >= 0; i--) {
+                    if (item.y >= this.topItems[i].y)
+                        break;
+                }
+                this.topItems.splice(i + 1, 0, item);
+                resultItems.push(item);
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (items_1_1 && !items_1_1.done && (_a = items_1.return)) _a.call(items_1);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
+        return resultItems;
+    };
+    Waterfall.prototype.calculateItem = function (initItem) {
+        var e_3, _a;
+        if (initItem.widthPercent) {
+            var padding = initItem.padding || 0;
+            initItem._width = initItem._width || initItem.width;
+            initItem._height = initItem._height || initItem.height;
+            initItem.width = this.width * initItem.widthPercent;
+            initItem.height = Math.min(initItem._height, (initItem.width - padding * 2) * (initItem._height / initItem._width), this.options.maxHeight || initItem._height) + padding * 2;
+        }
+        if (Math.floor(initItem.width + this.nowRowWidth) > this.width) {
+            this.isFirstLine = false;
+        }
+        var item = __assign({}, initItem, { x: this.nowRowMinBottomItem.x, y: this.nowRowMinBottomItem.y + this.nowRowMinBottomItem.height });
+        this.height = Math.max(this.height, item.y + item.height);
+        var nowWidth = 0;
+        var cacheRow = this.nowRow.concat([item]).sort(function (a, b) { return (b.y + b.height) - (a.y + a.height) || (b.x - a.x); });
+        this.nowRow = [];
+        try {
+            for (var cacheRow_1 = __values(cacheRow), cacheRow_1_1 = cacheRow_1.next(); !cacheRow_1_1.done; cacheRow_1_1 = cacheRow_1.next()) {
+                var i = cacheRow_1_1.value;
+                if (Math.floor(i.width + nowWidth) > this.width)
+                    break;
+                nowWidth += i.width;
+                this.nowRow.push(i);
+            }
+        }
+        catch (e_3_1) { e_3 = { error: e_3_1 }; }
+        finally {
+            try {
+                if (cacheRow_1_1 && !cacheRow_1_1.done && (_a = cacheRow_1.return)) _a.call(cacheRow_1);
+            }
+            finally { if (e_3) throw e_3.error; }
+        }
+        return item;
+    };
+    Waterfall.prototype.clear = function () {
+        this.isFirstLine = true;
+        this.nowRow = [];
+        this.topItems = [];
+        this.bottomItems = [];
+        this.height = 0;
+        this.initItems = [];
+    };
+    Waterfall.prototype.calculateAll = function () {
+        var initItems = this.initItems;
+        this.clear();
+        this.add(initItems);
+    };
+    return Waterfall;
+}());
+
+var throttle = function (func, wait) {
+    var timer;
+    var last = new Date().getTime();
+    var currArgs = [];
+    return function throttled() {
+        var _this = this;
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var curr = new Date().getTime();
+        currArgs = args;
+        var run = function () {
+            clearTimeout(timer);
+            timer = 0;
+            func.apply(_this, currArgs);
+            last = new Date().getTime();
+        };
+        if (curr - last > wait) {
+            run();
+        }
+        else if (!timer) {
+            timer = window.setTimeout(run, wait);
+        }
+    };
+};
+
+var VirtualList = /** @class */ (function () {
+    function VirtualList(dom, _a) {
+        var topItems = _a.topItems, bottomItems = _a.bottomItems;
+        this.topItems = [];
+        this.bottomItems = [];
+        this.offsetTop = 0;
+        this.viewItems = [];
+        this.cbs = {};
+        this.dom = dom;
+        this.topItems = topItems;
+        this.bottomItems = bottomItems;
+        this.initOffsetTop();
+        this.listener = throttle(this._listener, 100);
+        window.addEventListener('scroll', this.listener.bind(this));
+        this._listener();
+    }
+    VirtualList.prototype.initOffsetTop = function () {
+        var el = this.dom;
+        var top = el.offsetTop;
+        while (el.offsetParent) {
+            el = el.offsetParent;
+            top += el.offsetTop;
+        }
+        this.offsetTop = top;
+    };
+    VirtualList.prototype.setItems = function (_a) {
+        var topItems = _a.topItems, bottomItems = _a.bottomItems;
+        this.topItems = topItems;
+        this.bottomItems = bottomItems;
+        this._listener();
+    };
+    VirtualList.prototype._listener = function () {
+        var y = this.offsetTop - window.pageYOffset;
+        var startY;
+        var innerHeight = window.innerHeight;
+        if (y < 0)
+            startY = -y;
+        else if (y < innerHeight)
+            startY = 0;
+        else
+            startY = innerHeight - y;
+        var endY = innerHeight - y;
+        var bottomItems = this.getViewItem(this.bottomItems, startY, endY);
+        var topItems = this.getViewItem(this.topItems, startY, endY);
+        this.viewItems = Array.from(new Set(__spread(bottomItems, topItems)));
+        this.emit('change', this.viewItems);
+    };
+    VirtualList.prototype.getViewItem = function (items, startY, endY) {
+        var fromIndex = 0;
+        var endIndex = items.length - 1;
+        var index;
+        if (items.length === 0)
+            return [];
+        while (true) {
+            index = Math.floor((fromIndex + endIndex) / 2);
+            if ((index === fromIndex && index !== endIndex) || index < 0)
+                return [];
+            var direction = this.getItemDirection(items[index], startY, endY);
+            if (direction === -1)
+                fromIndex = index;
+            else if (direction === 1)
+                endIndex = index;
+            else
+                break;
+        }
+        for (var i = index; i >= 0; i -= 1) {
+            if (this.getItemDirection(items[i], startY, endY) === 0) {
+                fromIndex = i;
+            }
+            else {
+                break;
+            }
+        }
+        for (var i = index; i < items.length; i += 1) {
+            if (this.getItemDirection(items[i], startY, endY) === 0) {
+                endIndex = i;
+            }
+            else {
+                break;
+            }
+        }
+        return items.slice(fromIndex, endIndex + 1);
+    };
+    VirtualList.prototype.getItemDirection = function (item, startY, endY) {
+        if (item.height + item.y < startY - 200)
+            return -1;
+        if (item.y > endY + 200)
+            return 1;
+        return 0;
+    };
+    VirtualList.prototype.clear = function () {
+        this.topItems = [];
+        this.bottomItems = [];
+        this.viewItems = [];
+    };
+    VirtualList.prototype.on = function (name, cb) {
+        if (this.cbs[name])
+            this.cbs[name].push(cb);
+        else
+            this.cbs[name] = [cb];
+    };
+    VirtualList.prototype.emit = function (name) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        if (this.cbs[name])
+            this.cbs[name].forEach(function (cb) { return cb.apply(void 0, __spread(args)); });
+    };
+    return VirtualList;
+}());
+
+var vueInstall = {
+  install: (vue) => {
+    Object.defineProperty(vue.prototype, '$Waterfall', {
+      value: Waterfall
+    });
+    vue.component('virtualWaterfall', {
+      props: {
+        items: {
+          type: Array,
+          default: [],
+        },
+        maxHeight: {
+          type: Number,
+          default: null,
+        },
+      },
+      data() {
+        return {
+          cacheItems: [],
+          width: 0,
+          initialized: false,
+        }
+      },
+      watch: {
+        initialized(val) {
+          if (val && this.cacheItems) {
+            this.add(this.cacheItems);
+            this.cacheItems = [];
+          }
+        }
+      },
+      methods: {
+        add(items) {
+          if (this.initialized) {
+            this.waterfall.add(items);
+            this.virtualList.setItems(this.waterfall);
+            this.update();
+          } else {
+            this.cacheItems = this.cacheItems.concat(items);
+          }
+        },
+        clear() {
+          this.virtualList.clear();
+          this.waterfall.clear();
+          this.update();
+        },
+        update() {
+          this.$forceUpdate();
+        }
+      },
+      mounted() {
+        this.width = this.$el.getBoundingClientRect().width;
+        this.waterfall = new this.$Waterfall(this.items, { width: this.width, maxHeight: this.maxHeight });
+        this.virtualList = new VirtualList(this.$el, this.waterfall);
+        this.initialized = true;
+        this.virtualList.on('change', this.update.bind(this));
+
+        this.reDraw = throttle(() => {
+          this.width = this.$el.getBoundingClientRect().width;
+          this.waterfall.width = this.width;
+          this.waterfall.calculateAll();
+          this.virtualList.setItems(this.waterfall);
+          this.update();
+        }, 200);
+
+        window.addEventListener('resize', this.reDraw);
+        this.observe = new MutationObserver(() => {
+          const { width } = this.$el.getBoundingClientRect();
+          if (width !== this.width) this.reDraw();
+        });
+        this.observe.observe(this.$el, {
+          attributes: true,
+        });
+      },
+      destroyed() {
+        this.observe.disconnect();
+      },
+      render(h) {
+        return h('div', {
+          staticClass: 'virtual-list',
+          style: {
+            position: 'relative',
+            height: `${this.waterfall && this.waterfall.height}px`
+          }
+        }, this.width ? this.$scopedSlots.default({ nowItems: this.virtualList ? this.virtualList.viewItems : [] }) : []);
+      },
+    });
+  }
+};
+
+module.exports = vueInstall;

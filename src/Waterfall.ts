@@ -1,12 +1,12 @@
-interface Item {
+interface BaseItem {
   width: number;
   height: number;
   x: number;
   y: number;
-  color?: string;
+  padding?: number;
 }
 
-export interface InitItem {
+export interface BaseInitItem {
   width: number;
   height: number;
   _width?: number;
@@ -17,20 +17,25 @@ export interface InitItem {
   y?: number;
 }
 
+type Item<T> = BaseItem & T;
+type InitItem<T> = BaseInitItem & T;
+ 
 interface Options {
   width: number;
   maxHeight?: number;
 }
-export default class Waterfall {
+export default class Waterfall<P = {}> {
   width: number;
 
   height: number = 0;
 
-  items: Item[] = [];
+  topItems: Item<P>[] = [];
 
-  initItems: InitItem[] = [];
+  bottomItems: Item<P>[] = [];
 
-  nowRow: Item[] = [];
+  initItems: InitItem<P>[] = [];
+
+  nowRow: Item<P>[] = [];
 
   isFirstLine = true;
 
@@ -42,7 +47,7 @@ export default class Waterfall {
     return width;
   }
 
-  get nowRowMinBottomItem(): Item {
+  get nowRowMinBottomItem(): Item<{}> | Item<P> {
     if (this.isFirstLine) {
       const widths = this.nowRow.map(item => item.width);
       return {
@@ -55,33 +60,40 @@ export default class Waterfall {
     return this.nowRow.sort((a, b) => (a.y + a.height) - (b.y + b.height) || (a.x - b.x))[0];
   }
 
-  constructor(items: InitItem[], options: Options) {
+  constructor(items: InitItem<P>[], options: Options) {
     this.width = options.width;
     this.options = options;
     this.add(items);
   }
 
-  add(items: InitItem[]): Item[] {
+  add(items: InitItem<P>[]): Item<P>[] {
     this.initItems = this.initItems.concat(items);
-    return this.calculateItemAndToItems(items);
+    const rItems = this.calculateItemAndToItems(items);
+    return rItems;
   }
 
-  calculateItemAndToItems(items: InitItem[]): Item[] {
-    const resultItems: Item[] = [];
+  calculateItemAndToItems(items: InitItem<P>[]): Item<P>[] {
+    const resultItems: Item<P>[] = [];
     for (let initItem of items) {
       const item = this.calculateItem(initItem);
-      let i = this.items.length - 1;
+      let i = this.bottomItems.length - 1;
       for (; i >= 0; i--) {
-        if (item.y + item.height > this.items[i].y + this.items[i].height) break;
+        if (item.y + item.height >= this.bottomItems[i].y + this.bottomItems[i].height) break;
       }
-      this.items.splice(i + 1, 0, item);
+      this.bottomItems.splice(i + 1, 0, item);
+
+      i = this.topItems.length - 1;
+      for (; i >= 0; i--) {
+        if (item.y >= this.topItems[i].y) break;
+      }
+      this.topItems.splice(i + 1, 0, item);
       resultItems.push(item)
 
     }
     return resultItems;
   }
 
-  calculateItem(initItem: InitItem): Item {
+  calculateItem(initItem: InitItem<P>): Item<P> {
     if (initItem.widthPercent) {
       const padding = initItem.padding || 0;
       initItem._width = initItem._width || initItem.width;
@@ -96,7 +108,7 @@ export default class Waterfall {
     if (Math.floor(initItem.width + this.nowRowWidth) > this.width) {
       this.isFirstLine = false;
     } 
-    const item: Item = {
+    const item: Item<P> = {
       ...initItem,
       x: this.nowRowMinBottomItem.x,
       y: this.nowRowMinBottomItem.y + this.nowRowMinBottomItem.height,
@@ -117,7 +129,8 @@ export default class Waterfall {
   clear() {
     this.isFirstLine = true;
     this.nowRow = [];
-    this.items = [];
+    this.topItems = [];
+    this.bottomItems = [];
     this.height = 0;
     this.initItems = [];
   }

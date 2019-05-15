@@ -1,6 +1,6 @@
 export const throttle = function (func: Function, wait: number) {
   var timer: number;
-  var last: number;
+  var last: number = new Date().getTime();
   var currArgs: any[] = [];
 
   return function throttled(...args: any[]) {

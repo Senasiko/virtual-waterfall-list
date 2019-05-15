@@ -37,7 +37,7 @@ export default {
         add(items) {
           if (this.initialized) {
             this.waterfall.add(items);
-            this.virtualList.items = this.waterfall.items;
+            this.virtualList.setItems(this.waterfall);
             this.update();
           } else {
             this.cacheItems = this.cacheItems.concat(items);
@@ -55,7 +55,7 @@ export default {
       mounted() {
         this.width = this.$el.getBoundingClientRect().width;
         this.waterfall = new this.$Waterfall(this.items, { width: this.width, maxHeight: this.maxHeight });
-        this.virtualList = new VirtualList(this.$el, this.waterfall.items);
+        this.virtualList = new VirtualList(this.$el, this.waterfall);
         this.initialized = true;
         this.virtualList.on('change', this.update.bind(this));
 
@@ -63,7 +63,7 @@ export default {
           this.width = this.$el.getBoundingClientRect().width;
           this.waterfall.width = this.width;
           this.waterfall.calculateAll();
-          this.virtualList.items = this.waterfall.items;
+          this.virtualList.setItems(this.waterfall);
           this.update();
         }, 200);
 

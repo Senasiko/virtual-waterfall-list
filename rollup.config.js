@@ -23,7 +23,7 @@ export default [
     external: ['vue'],
     plugins: [
       typescript(),
-      terser(),
+      // terser(),
     ]
   }
 ]

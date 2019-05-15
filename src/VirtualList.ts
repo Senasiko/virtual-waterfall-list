@@ -1,96 +1,115 @@
 import { throttle } from './utils';
-export interface Item {
+export interface BaseItem {
   y: number;
   height: number;
 }
+export type Item<T> = BaseItem & T;
 
-export default class VirtualList {
-  dom: Element;
-  _items: Item[] = [];
-  fromIndex = 0;
-  endIndex = 0;
+export type ItemsObj<T> = { topItems: Item<T>[], bottomItems: Item<T>[] };
+
+export default class VirtualList<T = {}> {
+  private topItems: Item<T>[] = [];
+  private bottomItems: Item<T>[] = [];
+  private offsetTop: number = 0;
+  dom: HTMLElement;
+  viewItems: Item<T>[] = [];
+  listener: () => void;
   cbs: { [x: string]: Function[] } = {};
 
-  get viewItems() {
-    return this.items.slice(this.fromIndex, this.endIndex + 1);
-  }
-
-  constructor(dom: Element, items: Item[]) {
+  constructor(dom: HTMLElement, {
+    topItems,
+    bottomItems,
+  }: ItemsObj<T>) {
     this.dom = dom;
-    this.items = items;
+    this.topItems = topItems;
+    this.bottomItems = bottomItems;
+    this.initOffsetTop();
 
-    const listener = throttle(this.listener, 100);
-    document.body.addEventListener('wheel', listener.bind(this));
-    window.addEventListener('scroll', listener.bind(this));
+    this.listener = throttle(this._listener, 100);
+    window.addEventListener('scroll', this.listener.bind(this));
+    this._listener();
   }
 
-  get items() {
-    return this._items
+  initOffsetTop() {
+    let el = this.dom;
+    let top = el.offsetTop;
+    while (el.offsetParent) {
+      el = el.offsetParent as HTMLElement;
+      top += el.offsetTop;
+    }
+    this.offsetTop = top;
   }
 
-  set items(val) {
-    this._items = val;
-    this.listener();
+  setItems({
+    topItems,
+    bottomItems,
+  }: ItemsObj<T>) {
+    this.topItems = topItems;
+    this.bottomItems = bottomItems;
+    this._listener();
   }
 
-  listener() {
-    [this.fromIndex, this.endIndex] = this.getViewItemIndex();
-    this.emit('change');
-  }
-
-  getViewItemIndex(): [number, number] {
-    const { top: y } = this.dom.getBoundingClientRect() as DOMRect;
+  _listener() {
+    const y = this.offsetTop - window.pageYOffset
     let startY;
+    const { innerHeight } = window;
     if (y < 0) startY = -y;
-    else if (y < window.innerHeight) startY = 0;
-    else startY = window.innerHeight - y;
-    const endY = window.innerHeight - y;
+    else if (y < innerHeight) startY = 0;
+    else startY = innerHeight - y;
+    const endY = innerHeight - y;
+    const bottomItems = this.getViewItem(this.bottomItems, startY, endY);
+    const topItems = this.getViewItem(this.topItems, startY, endY);
+    this.viewItems = Array.from(
+      new Set([
+        ...bottomItems,
+        ...topItems,
+      ]));
+    this.emit('change', this.viewItems);
+  }
 
+  getViewItem(items: Item<T>[], startY: number, endY: number): Item<T>[] {
     let fromIndex = 0;
-    let endIndex = this.items.length - 1;
+    let endIndex = items.length - 1;
     let index: number;
 
-    while(true) {
+    if (items.length === 0) return [];
+    while (true) {
       index = Math.floor((fromIndex + endIndex) / 2);
-      if ((index === fromIndex && index !== endIndex) || index < 0) return [-1, -1];
-      const direction = this.getItemDirection(this.items[index], startY, endY);
+      if ((index === fromIndex && index !== endIndex) || index < 0) return [];
+      const direction = this.getItemDirection(items[index], startY, endY);
       if (direction === -1) fromIndex = index;
       else if (direction === 1) endIndex = index;
       else break;
     }
 
-    let upEndY = endY;
-    let downStartY = startY;
-    for (let i = index; i >= 0; i--) {
-      if (this.getItemDirection(this.items[i], startY, upEndY) === 0) {
+    for (let i = index; i >= 0; i-=1) {
+      if (this.getItemDirection(items[i], startY, endY) === 0) {
         fromIndex = i;
-        upEndY = Math.max(upEndY, this.items[i].y + this.items[i].height)
-        downStartY = Math.min(downStartY, this.items[i].y);
       } else {
         break;
       }
     }
-    for (let i = index; i < this.items.length; i++) {
-      if (this.getItemDirection(this.items[i], downStartY, endY) === 0) {
+    for (let i = index; i < items.length; i+=1) {
+      if (this.getItemDirection(items[i], startY, endY) === 0) {
         endIndex = i;
-        downStartY = Math.min(downStartY, this.items[i].y);
       } else {
         break;
       }
     }
-    return [fromIndex, endIndex];
+
+    return items.slice(fromIndex, endIndex + 1);
   }
 
-  getItemDirection(item: Item, startY: number, endY: number) {
+  getItemDirection(item: Item<T>, startY: number, endY: number) {
     if (item.height + item.y < startY - 200) return -1;
     if (item.y > endY + 200) return 1;
     return 0;
   }
 
   clear() {
-    this._items = [];
-    this.fromIndex = 0;
-    this.endIndex = 0;
+    this.topItems = [];
+    this.bottomItems = [];
+    this.viewItems = [];
   }
 
   on(name: string, cb: Function) {
